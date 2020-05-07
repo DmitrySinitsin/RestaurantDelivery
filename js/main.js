@@ -21,13 +21,24 @@ const cardsMenu = document.querySelector('.cards-menu');//товар ресто�
 
 let login = localStorage.getItem('gloDelivery');
 
-function toggleModal() {
+let valid = function (str) {
+  const nameReg = /^[a-zA-Z][a-zA-Z0-9-_\.]{1,20}$/;//литерал регулярных выражений //, литерал массива[], литерал объекта {}, литерал строки '', литерал числа - число
+  return nameReg.test(str);//проверка логина на соответствие регулярному выражению true false habr.com/ru/post/123845
+}
+
+function toggleModal() {//вывод модального окна залогинивания
   modal.classList.toggle("is-open");//добавление класса модальному окну (если есть - модальное окно ОТКРЫТО, если класса нет - ЗАКРЫТО)
 }
 
-function toggleModalAuth() {
+function toggleModalAuth() {//вызов модального окна авторизации
   loginInput.style.borderColor = '';//возврат стиля(убираем красную рамку)
   modalAuth.classList.toggle("is-open");
+}
+
+function returnMain() {//переход на Главную 
+  containerPromo.classList.remove('hide');
+  restaurants.classList.remove('hide');
+  menu.classList.add('hide');
 }
 
 function authorized() {
@@ -40,6 +51,7 @@ function authorized() {
     buttonOut.style.display = '';
     buttonOut.removeEventListener('click', logOut);
     checkAuth();
+    returnMain();
   }
 
   console.log("Авторизован");
@@ -60,7 +72,8 @@ function notAuthorized() {
   function logIn(event) {
     event.preventDefault();//предотвращение дефолтного поведения браузера (перезагрузки не будет)
 
-    if (maskInput(loginInput.value)) {//если есть ввод в инпуте Логин
+    // if (valid(maskInput(loginInput.value))) {//если есть ввод в инпуте Логин
+    if (valid(loginInput.value)) {
       login = loginInput.value;
       localStorage.setItem('gloDelivery', login);
       toggleModalAuth();
@@ -71,6 +84,7 @@ function notAuthorized() {
       checkAuth();
     } else {
       loginInput.style.borderColor = 'tomato';
+      loginInput.value = '';
     }
 
 
@@ -92,8 +106,6 @@ function checkAuth() {
     notAuthorized();
   }
 }
-
-checkAuth();
 
 function createCardRestaurant() {
   const card = `
@@ -117,10 +129,6 @@ function createCardRestaurant() {
 
   cardsRestaurants.insertAdjacentHTML('beforeend', card);
 }
-
-createCardRestaurant();
-createCardRestaurant();
-createCardRestaurant();
 
 function createCardGood() {
   const card = document.createElement('div');
@@ -152,16 +160,20 @@ function openGoods(event) {//открытие товаров ресторана 
   const target = event.target;//взять из эвента таргет (куда кликнули)
   //console.log(event.target);
   const restaurant = target.closest('.card-restaurant');//поиск по родительским элементам класса в скобках, а если не нашел - вернет налл
-  if (restaurant) {
-    cardsMenu.textContent = '';//очистка от предыдущих выводов товаров ресторана, чтобы не дублировались при повторе вызова
-    containerPromo.classList.add('hide');
-    restaurants.classList.add('hide');
-    menu.classList.remove('hide');
-    createCardGood();
-    createCardGood();
-    createCardGood();
-  }
 
+  if (restaurant) {//если нажали на ресторан
+    if (login) {//если юзер залогинился
+      cardsMenu.textContent = '';//очистка от предыдущих выводов товаров ресторана, чтобы не дублировались при повторе вызова
+      containerPromo.classList.add('hide');
+      restaurants.classList.add('hide');
+      menu.classList.remove('hide');
+      createCardGood();
+      createCardGood();
+      createCardGood();
+    } else {
+      toggleModalAuth();//иначе залогинься
+    }
+  }
 }
 
 cartButton.addEventListener("click", toggleModal);
@@ -176,7 +188,18 @@ logo.addEventListener('click', function () {//возврат обратно к �
   menu.classList.add('hide');
 });
 
+checkAuth();
 
+createCardRestaurant();
+createCardRestaurant();
+createCardRestaurant();
+
+new Swiper('.swiper-container', {//запуск слайдера
+  loop: true,
+  autoplay: {
+    delay: 3000,
+  },
+});
 
 
 // buttonAuth.addEventListener('click', function(){
