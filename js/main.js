@@ -21,19 +21,29 @@ const cardsMenu = document.querySelector('.cards-menu');//товар ресто�
 
 let login = localStorage.getItem('gloDelivery');
 
+const getData = async function (url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Ошибка по адресу ${url}, статус ошибки ${response.status}!`);
+  }
+  //console.log((response).json());
+  return await response.json();
+};
+// console.log(getData('./db/partners.json'));
+
 let valid = function (str) {
   const nameReg = /^[a-zA-Z][a-zA-Z0-9-_\.]{1,20}$/;//литерал регулярных выражений //, литерал массива[], литерал объекта {}, литерал строки '', литерал числа - число
   return nameReg.test(str);//проверка логина на соответствие регулярному выражению true false habr.com/ru/post/123845
-}
+};
 
-function toggleModal() {//вывод модального окна залогинивания
+const toggleModal = function () {//вывод модального окна залогинивания
   modal.classList.toggle("is-open");//добавление класса модальному окну (если есть - модальное окно ОТКРЫТО, если класса нет - ЗАКРЫТО)
-}
+};
 
-function toggleModalAuth() {//вызов модального окна авторизации
+const toggleModalAuth = function () {//вызов модального окна авторизации
   loginInput.style.borderColor = '';//возврат стиля(убираем красную рамку)
   modalAuth.classList.toggle("is-open");
-}
+};
 
 function returnMain() {//переход на Главную 
   containerPromo.classList.remove('hide');
@@ -107,21 +117,29 @@ function checkAuth() {
   }
 }
 
-function createCardRestaurant() {
+function createCardRestaurant(restaurant) {
+  console.log(restaurant);
+  const { image,
+    kitchen,
+    name,
+    price,
+    stars,
+    products,
+    time_of_delivery } = restaurant;//реструктуризация
   const card = `
-  <a class="card card-restaurant">
-		<img src="img/tanuki/preview.jpg" alt="image" class="card-image"/>
+  <a class="card card-restaurant" data-products="${products}">
+		<img src="${image}" alt="image" class="card-image"/>
 			<div class="card-text">
 				<div class="card-heading">
-					<h3 class="card-title">Тануки</h3>
-					<span class="card-tag tag">60 мин</span>
+					<h3 class="card-title">${name}</h3>
+					<span class="card-tag tag">${time_of_delivery} мин</span>
 				</div>
 				<div class="card-info">
 					<div class="rating">
-						4.5
+						${stars}
 					</div>
-				  <div class="price">От 1 200 ₽</div>
-					<div class="category">Суши, роллы</div>
+				  <div class="price">От ${price} ₽</div>
+					<div class="category">${kitchen}</div>
 			  </div>
 			</div>
 		</a>
@@ -130,18 +148,21 @@ function createCardRestaurant() {
   cardsRestaurants.insertAdjacentHTML('beforeend', card);
 }
 
-function createCardGood() {
+function createCardGood(goods) {
+  console.log(goods);
+
+  const { description, id, image, name, price } = goods;
+
   const card = document.createElement('div');
   card.className = 'card';
   card.insertAdjacentHTML('beforeend', `
-      <img src="img/pizza-plus/pizza-classic.jpg" alt="image" class="card-image"/>
+      <img src="${image}" alt="image" class="card-image"/>
       <div class="card-text">
         <div class="card-heading">
-          <h3 class="card-title card-title-reg">Пицца Классика</h3>
+          <h3 class="card-title card-title-reg">${name}</h3>
         </div>
         <div class="card-info">
-          <div class="ingredients">Соус томатный, сыр «Моцарелла», сыр «Пармезан», ветчина, салями,
-            грибы.
+          <div class="ingredients">${description}
           </div>
         </div>
         <div class="card-buttons">
@@ -149,7 +170,7 @@ function createCardGood() {
             <span class="button-card-text">В корзину</span>
             <span class="button-cart-svg"></span>
           </button>
-          <strong class="card-price-bold">510 ₽</strong>
+          <strong class="card-price-bold">${price} ₽</strong>
         </div>
       </div>
   `);
@@ -163,43 +184,83 @@ function openGoods(event) {//открытие товаров ресторана 
 
   if (restaurant) {//если нажали на ресторан
     if (login) {//если юзер залогинился
+
+
       cardsMenu.textContent = '';//очистка от предыдущих выводов товаров ресторана, чтобы не дублировались при повторе вызова
-      containerPromo.classList.add('hide');
-      restaurants.classList.add('hide');
-      menu.classList.remove('hide');
-      createCardGood();
-      createCardGood();
-      createCardGood();
+      containerPromo.classList.add('hide');//скрыть слайдер 
+      restaurants.classList.add('hide');//скрыть рестораны
+      menu.classList.remove('hide');//показать меню
+
+      getData(`./db/${restaurant.dataset.products}`).then(function (data) {
+        data.forEach(createCardGood);
+      });
     } else {
       toggleModalAuth();//иначе залогинься
     }
   }
 }
 
-cartButton.addEventListener("click", toggleModal);
+function init() {
 
-close.addEventListener("click", toggleModal);
+  getData('./db/partners.json').then(function (data) {
+    // console.log(data);
+    data.forEach(createCardRestaurant);
+  });
 
-cardsRestaurants.addEventListener('click', openGoods);//при клике по карточке ресторана запуск функции опенГудз, показ товара 
+  cartButton.addEventListener("click", toggleModal);
 
-logo.addEventListener('click', function () {//возврат обратно к ресторанам со скрытием товаров предыдущего прехода
-  containerPromo.classList.remove('hide');
-  restaurants.classList.remove('hide');
-  menu.classList.add('hide');
-});
+  close.addEventListener("click", toggleModal);
 
-checkAuth();
+  cardsRestaurants.addEventListener('click', openGoods);//при клике по карточке ресторана запуск функции опенГудз, показ товара 
 
-createCardRestaurant();
-createCardRestaurant();
-createCardRestaurant();
+  logo.addEventListener('click', function () {//возврат обратно к ресторанам со скрытием товаров предыдущего прехода
+    containerPromo.classList.remove('hide');
+    restaurants.classList.remove('hide');
+    menu.classList.add('hide');
+  });
 
-new Swiper('.swiper-container', {//запуск слайдера
-  loop: true,
-  autoplay: {
-    delay: 3000,
-  },
-});
+  checkAuth();
+
+  new Swiper('.swiper-container', {//запуск слайдера
+    loop: true,
+    autoplay: {
+      delay: 3000,
+    },
+  });
+}
+
+init();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 // buttonAuth.addEventListener('click', function(){
